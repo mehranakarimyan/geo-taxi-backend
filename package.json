@@ -1,0 +1,23 @@
+{
+  "name": "taxi-nosql-system",
+  "version": "1.0.0",
+  "description": "طراحی و پیاده‌سازی یک سیستم پایگاه داده NoSQL (MongoDB) برای شرکت تاکسی اینترنتی - پروژه کارآموزی",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "seed": "node src/scripts/seed.js"
+  },
+  "keywords": ["mongodb", "nosql", "taxi", "express", "mongoose", "geospatial"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.5.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4",
+    "@faker-js/faker": "^8.4.1"
+  }
+}
