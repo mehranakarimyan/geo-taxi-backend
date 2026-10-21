@@ -1,172 +1,260 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
 <meta charset="UTF-8" />
-<title>🚕 داشبورد سیستم تاکسی NoSQL</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Geo-Taxi Dispatch Console</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  :root {
+    --bg: #0B0D10;
+    --panel: #12151A;
+    --line: #262B33;
+    --text: #E8E6DF;
+    --muted: #7C8592;
+    --amber: #F2B705;
+    --teal: #3FA796;
+    --slate: #4B5563;
+    --brick: #C1443C;
+  }
   * { box-sizing: border-box; }
   body {
-    font-family: Tahoma, Arial, sans-serif;
     margin: 0;
-    background: #0f1420;
-    color: #e8ecf3;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: "IBM Plex Sans", Arial, sans-serif;
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-attachment: fixed;
   }
+  .mono { font-family: "IBM Plex Mono", Consolas, monospace; }
+
   header {
-    padding: 16px 24px;
-    background: #141a2b;
-    border-bottom: 1px solid #232c42;
+    padding: 16px 28px;
+    border-bottom: 1px solid var(--line);
+    background: rgba(11, 13, 16, 0.92);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
   }
-  header h1 { font-size: 20px; margin: 0; }
-  header .live {
-    font-size: 12px;
-    color: #7ee787;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+  header .title { font-size: 15px; font-weight: 600; letter-spacing: 0.06em; }
+  header .title .dim { color: var(--muted); font-weight: 400; }
+  header .clock {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 15px;
+    color: var(--amber);
+    letter-spacing: 0.06em;
   }
-  .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #7ee787;
-    box-shadow: 0 0 8px #7ee787;
-    animation: pulse 1.5s infinite;
-  }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
-  .stats {
+  .stat-strip {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    padding: 16px 24px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
   }
-  .stat-card {
-    background: #141a2b;
-    border: 1px solid #232c42;
-    border-radius: 10px;
-    padding: 14px 16px;
+  .stat { padding: 16px 24px; border-left: 1px solid var(--line); }
+  .stat:first-child { border-left: none; }
+  .stat .val {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 30px;
+    font-weight: 500;
+    color: var(--amber);
+    line-height: 1;
   }
-  .stat-card .num { font-size: 26px; font-weight: bold; }
-  .stat-card .label { font-size: 12px; color: #9aa5bd; margin-top: 4px; }
-  .stat-card.green .num { color: #7ee787; }
-  .stat-card.orange .num { color: #f0b35c; }
-  .stat-card.blue .num { color: #6ea8fe; }
-  .stat-card.pink .num { color: #f38ba8; }
+  .stat.teal .val { color: var(--teal); }
+  .stat .lbl {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
 
   .layout {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
-    gap: 16px;
-    padding: 0 24px 24px;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 1px;
+    background: var(--line);
   }
-  .panel {
-    background: #141a2b;
-    border: 1px solid #232c42;
-    border-radius: 10px;
-    padding: 14px 16px;
-  }
-  .panel h2 {
-    font-size: 15px;
-    margin: 0 0 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .hint { font-size: 12px; color: #9aa5bd; margin-bottom: 10px; }
-  #map { height: 480px; border-radius: 8px; }
+  .panel { background: var(--bg); padding: 18px 22px; }
 
-  .list { max-height: 440px; overflow-y: auto; }
-  .item {
-    padding: 10px;
-    border-bottom: 1px solid #1e2537;
-    font-size: 13px;
+  .panel-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--line);
   }
-  .item:last-child { border-bottom: none; }
-  .badge {
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 20px;
-    font-weight: bold;
+  .panel-head h2 {
+    font-size: 12px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
   }
-  .badge.online { background: #103b22; color: #7ee787; }
-  .badge.offline { background: #3a2323; color: #f38ba8; }
-  .badge.on_trip { background: #3d3320; color: #f0b35c; }
-  .badge.requested { background: #232c42; color: #9aa5bd; }
-  .badge.accepted { background: #103b22; color: #7ee787; }
-  .badge.in_progress { background: #3d3320; color: #f0b35c; }
-  .badge.completed { background: #16324f; color: #6ea8fe; }
-  .badge.cancelled { background: #3a2323; color: #f38ba8; }
+  .panel-head .sub { font-size: 11px; color: var(--muted); }
+
+  #map { height: 460px; border: 1px solid var(--line); background: #0f1216; }
 
   button {
-    background: #2b3a5c;
-    color: #e8ecf3;
-    border: 1px solid #3a4a70;
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 12px;
+    background: transparent;
+    color: var(--amber);
+    border: 1px solid var(--amber);
+    padding: 5px 12px;
+    font-size: 11px;
+    font-family: "IBM Plex Mono", Consolas, monospace;
     cursor: pointer;
-    font-family: inherit;
+    letter-spacing: 0.05em;
   }
-  button:hover { background: #3a4a70; }
+  button:hover { background: rgba(242, 183, 5, 0.12); }
 
-  #nearbyResult { margin-top: 10px; font-size: 13px; }
-  .empty { color: #6b7488; font-size: 13px; text-align: center; padding: 20px; }
+  .log { max-height: 440px; overflow-y: auto; }
+  .log-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 4px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .log-row:last-child { border-bottom: none; }
+  .tick { width: 4px; height: 22px; flex-shrink: 0; background: var(--slate); }
+  .tick.accepted { background: var(--teal); }
+  .tick.in_progress { background: var(--amber); }
+  .tick.completed { background: #6FA98A; }
+  .tick.cancelled { background: var(--brick); }
+  .log-route { flex: 1; }
+  .log-status {
+    font-family: "IBM Plex Mono", Consolas, monospace;
+    font-size: 10.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  #nearbyResult { margin-top: 12px; }
+  .nearby-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 4px;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  .nearby-score { color: var(--amber); }
+
+  .legend { display: flex; gap: 18px; font-size: 11.5px; color: var(--muted); margin: 0 0 10px; }
+  .legend span::before {
+    content: "";
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: var(--c);
+  }
+
+  .hint { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 8px; }
+  .empty { color: var(--muted); font-size: 13px; padding: 24px 0; text-align: center; }
+
+  /* Dark-map look from standard OSM tiles: invert only the tile layer,
+     so markers and the search circle keep their own colors. */
+  .leaflet-tile-pane {
+    filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85) saturate(0.6);
+  }
+  .leaflet-container { background: #0f1216; }
+
+  .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .stat-strip { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>🚕 داشبورد سیستم تاکسی اینترنتی (NoSQL)</h1>
-  <div class="live"><span class="dot"></span> به‌روزرسانی زنده هر ۵ ثانیه</div>
+  <div class="title">GEO-TAXI <span class="dim">/ dispatch console</span></div>
+  <div class="clock" id="clock">--:--:--</div>
 </header>
 
-<div class="stats" id="stats">
-  <div class="stat-card green"><div class="num" id="statOnline">–</div><div class="label">رانندگان آنلاین</div></div>
-  <div class="stat-card orange"><div class="num" id="statOnTrip">–</div><div class="label">در حال سفر</div></div>
-  <div class="stat-card blue"><div class="num" id="statTrips">–</div><div class="label">سفرهای اخیر</div></div>
-  <div class="stat-card pink"><div class="num" id="statRevenue">–</div><div class="label">مجموع درآمد (تومان)</div></div>
+<div class="stat-strip">
+  <div class="stat"><div class="val" id="statOnline">–</div><div class="lbl">Drivers online</div></div>
+  <div class="stat teal"><div class="val" id="statOnTrip">–</div><div class="lbl">On trip</div></div>
+  <div class="stat"><div class="val" id="statTrips">–</div><div class="lbl">Trips logged</div></div>
+  <div class="stat"><div class="val" id="statRevenue">–</div><div class="lbl">Total revenue (Toman)</div></div>
 </div>
 
 <div class="layout">
   <div class="panel">
-    <h2>📍 موقعیت لحظه‌ای رانندگان</h2>
-    <div class="hint">روی نقشه کلیک کن تا نزدیک‌ترین رانندگان آنلاین به همون نقطه پیدا بشن (کوئری $near زنده)</div>
+    <div class="panel-head">
+      <h2>Driver positions</h2>
+      <span class="sub mono">LIVE · 5s</span>
+    </div>
+    <div class="legend">
+      <span style="--c: #F2B705">Online</span>
+      <span style="--c: #3FA796">On trip</span>
+      <span style="--c: #4B5563">Offline</span>
+    </div>
+    <div class="hint">Click anywhere on the map to run a live <span class="mono">$near</span> query on the <span class="mono">2dsphere</span> index and find the nearest online drivers.</div>
     <div id="map"></div>
     <div id="nearbyResult"></div>
   </div>
 
   <div class="panel">
-    <h2>🚗 سفرهای اخیر <button onclick="loadTrips()">تازه‌سازی</button></h2>
-    <div class="list" id="tripsList"><div class="empty">در حال بارگذاری...</div></div>
+    <div class="panel-head">
+      <h2>Trip log</h2>
+      <button onclick="loadTrips()">↻ REFRESH</button>
+    </div>
+    <div class="log" id="tripsList"><div class="empty">Loading...</div></div>
   </div>
 </div>
 
 <script>
-const API = window.location.origin; // همون سروری که داشبورد رو سرو می‌کنه
+const API = window.location.origin;
 const TEHRAN = [35.6892, 51.389];
 
+function tickClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-GB');
+}
+tickClock();
+setInterval(tickClock, 1000);
+
 const map = L.map('map').setView(TEHRAN, 12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 18,
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19,
 }).addTo(map);
 
 let driverMarkers = [];
 let clickMarker = null;
 let nearbyCircle = null;
 
-const statusColor = { online: '#2ecc71', offline: '#7f8c8d', on_trip: '#f39c12' };
-const statusFa = { online: 'آنلاین', offline: 'آفلاین', on_trip: 'در سفر' };
+const statusColor = { online: '#F2B705', offline: '#4B5563', on_trip: '#3FA796' };
+const driverStatusLabel = { online: 'Online', offline: 'Offline', on_trip: 'On trip' };
+const tripStatusLabel = {
+  requested: 'Requested', accepted: 'Accepted', in_progress: 'In progress',
+  completed: 'Completed', cancelled: 'Cancelled'
+};
 
-function clearDriverMarkers() {
-  driverMarkers.forEach(m => map.removeLayer(m));
-  driverMarkers = [];
+function escapeHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
 }
 
 async function loadDrivers() {
@@ -175,7 +263,8 @@ async function loadDrivers() {
     const drivers = await res.json();
     if (!Array.isArray(drivers)) return;
 
-    clearDriverMarkers();
+    driverMarkers.forEach(m => map.removeLayer(m));
+    driverMarkers = [];
     let online = 0, onTrip = 0;
 
     drivers.forEach(d => {
@@ -183,14 +272,15 @@ async function loadDrivers() {
       if (d.status === 'on_trip') onTrip++;
       const [lng, lat] = d.currentLocation.coordinates;
       const marker = L.circleMarker([lat, lng], {
-        radius: 7,
+        radius: 6,
         fillColor: statusColor[d.status] || '#999',
-        color: '#0f1420',
+        color: '#0B0D10',
         weight: 1.5,
-        fillOpacity: 0.9,
+        fillOpacity: 0.95,
       }).addTo(map);
+      const rating = d.rating && typeof d.rating.avg === 'number' ? d.rating.avg.toFixed(1) : '-';
       marker.bindPopup(
-        `<b>${d.name}</b><br/>${d.vehicle?.model || ''} (${d.vehicle?.color || ''})<br/>وضعیت: ${statusFa[d.status] || d.status}<br/>امتیاز: ${d.rating?.avg?.toFixed(1) ?? '—'} ⭐`
+        `<b>${escapeHtml(d.name)}</b><br/>${escapeHtml(d.vehicle && d.vehicle.model)} · ${escapeHtml(d.vehicle && d.vehicle.color)}<br/>${driverStatusLabel[d.status] || escapeHtml(d.status)} · ${rating}★`
       );
       driverMarkers.push(marker);
     });
@@ -198,7 +288,7 @@ async function loadDrivers() {
     document.getElementById('statOnline').textContent = online;
     document.getElementById('statOnTrip').textContent = onTrip;
   } catch (err) {
-    console.error('خطا در بارگذاری رانندگان:', err);
+    console.error('driver load error:', err);
   }
 }
 
@@ -208,28 +298,24 @@ async function loadTrips() {
     const res = await fetch(`${API}/trips?limit=20`);
     const trips = await res.json();
     if (!Array.isArray(trips) || trips.length === 0) {
-      container.innerHTML = '<div class="empty">هنوز سفری ثبت نشده</div>';
+      container.innerHTML = '<div class="empty">No trips logged yet</div>';
       return;
     }
 
     let totalRevenue = 0;
     trips.forEach(t => { if (t.status === 'completed') totalRevenue += (t.fare || 0); });
     document.getElementById('statTrips').textContent = trips.length;
-    document.getElementById('statRevenue').textContent = totalRevenue.toLocaleString('fa-IR');
-
-    const statusFaTrip = {
-      requested: 'درخواست‌شده', accepted: 'پذیرفته‌شده', in_progress: 'در حال انجام',
-      completed: 'پایان‌یافته', cancelled: 'لغوشده'
-    };
+    document.getElementById('statRevenue').textContent = totalRevenue.toLocaleString('en-US');
 
     container.innerHTML = trips.map(t => `
-      <div class="item">
-        <span>${t.riderId?.name || '—'} ← ${t.driverId?.name || 'بدون راننده'}</span>
-        <span class="badge ${t.status}">${statusFaTrip[t.status] || t.status}</span>
+      <div class="log-row">
+        <div class="tick ${escapeHtml(t.status)}"></div>
+        <div class="log-route">${escapeHtml(t.riderId && t.riderId.name || '-')} → ${escapeHtml(t.driverId && t.driverId.name || 'Unassigned')}</div>
+        <div class="log-status">${tripStatusLabel[t.status] || escapeHtml(t.status)}</div>
       </div>
     `).join('');
   } catch (err) {
-    container.innerHTML = '<div class="empty">خطا در دریافت سفرها</div>';
+    container.innerHTML = '<div class="empty">Failed to load trips</div>';
     console.error(err);
   }
 }
@@ -240,31 +326,33 @@ map.on('click', async (e) => {
   if (clickMarker) map.removeLayer(clickMarker);
   if (nearbyCircle) map.removeLayer(nearbyCircle);
 
-  clickMarker = L.marker([lat, lng]).addTo(map).bindPopup('نقطه‌ی جستجو').openPopup();
-  nearbyCircle = L.circle([lat, lng], { radius: 5000, color: '#6ea8fe', fillOpacity: 0.05 }).addTo(map);
+  clickMarker = L.marker([lat, lng]).addTo(map).bindPopup('Search point').openPopup();
+  nearbyCircle = L.circle([lat, lng], {
+    radius: 5000, color: '#F2B705', weight: 1, fillOpacity: 0.04
+  }).addTo(map);
 
-  const resultBox = document.getElementById('nearbyResult');
-  resultBox.innerHTML = 'در حال جستجوی نزدیک‌ترین رانندگان...';
+  const box = document.getElementById('nearbyResult');
+  box.innerHTML = '<div class="hint mono">querying $near ...</div>';
 
   try {
     const res = await fetch(`${API}/drivers/nearby?lng=${lng}&lat=${lat}&maxDistance=5000`);
     const drivers = await res.json();
 
     if (!Array.isArray(drivers) || drivers.length === 0) {
-      resultBox.innerHTML = '<div class="hint">هیچ راننده‌ی آنلاینی در شعاع ۵ کیلومتری پیدا نشد.</div>';
+      box.innerHTML = '<div class="hint">No online drivers found within 5 km.</div>';
       return;
     }
 
-    resultBox.innerHTML = `<b>${drivers.length} راننده‌ی نزدیک پیدا شد:</b>` + drivers.map(d =>
-      `<div class="item"><span>${d.name} — ${d.vehicle?.model || ''}</span><span class="badge online">${(d.rating?.avg ?? 5).toFixed(1)} ⭐</span></div>`
-    ).join('');
+    box.innerHTML = drivers.map(d => {
+      const score = d.rating && typeof d.rating.avg === 'number' ? d.rating.avg.toFixed(1) : '5.0';
+      return `<div class="nearby-row"><span>${escapeHtml(d.name)} · ${escapeHtml(d.vehicle && d.vehicle.model)}</span><span class="nearby-score mono">${score}★</span></div>`;
+    }).join('');
   } catch (err) {
-    resultBox.innerHTML = 'خطا در ارتباط با سرور.';
+    box.innerHTML = '<div class="hint">Could not reach the server.</div>';
     console.error(err);
   }
 });
 
-// بارگذاری اولیه + به‌روزرسانی خودکار
 loadDrivers();
 loadTrips();
 setInterval(loadDrivers, 5000);
