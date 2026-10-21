@@ -1,0 +1,11 @@
+[33m4c25649[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add internship report to docs folder
+[33m8855d37[m Update README with dashboard section
+[33m4a6a287[m Add live dashboard with map and recent trips view
+[33m09c7e28[m Add package lock file
+[33m4398b8d[m Add database seed script for test data
+[33m50d09d8[m Add API routes for trips, payments, ratings; set up main server
+[33m2c99956[m Add API routes for users and drivers
+[33mb6ca308[m Implement Trip, Payment, and Rating schemas
+[33ma7e3ebf[m Implement User and Driver schemas
+[33me698bbf[m Add MongoDB connection configuration
+[33m1740aab[m Initial project setup and dependencies
